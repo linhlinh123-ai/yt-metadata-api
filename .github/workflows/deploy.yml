@@ -23,7 +23,7 @@ jobs:
       - name: Build and Deploy
         run: |
           IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/yt-metadata:${GITHUB_SHA}"
-          gcloud builds submit --tag $IMAGE .
+          gcloud builds submit --no-stream-logs --tag $IMAGE .
           gcloud run deploy yt-metadata-api \
             --image $IMAGE \
             --platform managed \
