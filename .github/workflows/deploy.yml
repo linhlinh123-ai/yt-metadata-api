@@ -1,48 +1,32 @@
-name: Build and Deploy to Cloud Run
+name: Deploy to Cloud Run
 
 on:
   push:
-    branches:
-      - main
+    branches: ["main"]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: Set up gcloud SDK
-        uses: google-github-actions/setup-gcloud@v1
+      - name: Auth to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Configure Docker auth for GCR
+      - name: Build and Deploy
         run: |
-          gcloud auth configure-docker --quiet
-
-      - name: Build and push image with Cloud Build
-        run: |
-          IMAGE=gcr.io/${{ secrets.GCP_PROJECT_ID }}/yt-metadata:${{ github.sha }}
-          echo "Building image $IMAGE"
-          gcloud builds submit --tag $IMAGE
-
-      - name: Deploy to Cloud Run (set YOUTUBE_COOKIE as base64)
-        env:
-          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-        run: |
-          IMAGE=gcr.io/${{ secrets.GCP_PROJECT_ID }}/yt-metadata:${{ github.sha }}
-          SERVICE_NAME=yt-metadata
-          REGION=asia-southeast1
-
-          # Base64 encode secret to a single-line safe env var
-          COOKIE_B64=$(echo "${{ secrets.YOUTUBE_COOKIE }}" | base64 -w 0)
-
-          echo "Deploying $SERVICE_NAME -> $REGION"
-          gcloud run deploy "$SERVICE_NAME" \
-            --image "$IMAGE" \
-            --region "$REGION" \
+          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/yt-metadata:${GITHUB_SHA}"
+          gcloud builds submit --tag $IMAGE .
+          gcloud run deploy yt-metadata-api \
+            --image $IMAGE \
             --platform managed \
+            --region asia-southeast1 \
             --allow-unauthenticated \
-            --set-env-vars "YOUTUBE_COOKIE=${COOKIE_B64}"
+            --set-env-vars "YOUTUBE_COOKIE=${{ secrets.YOUTUBE_COOKIE }}"
