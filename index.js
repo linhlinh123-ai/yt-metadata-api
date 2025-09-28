@@ -5,8 +5,7 @@ import fs from "fs";
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Cookie được mount từ Secret
-const COOKIE_PATH = "/tmp/cookies.txt";  // hoặc "/tmp/cookies.txt/youtube-cookie" tùy mount path
+const COOKIE_PATH = "/tmp/cookies.txt"; // file cookie mount từ Secret
 
 app.get("/check", (req, res) => {
   const url = req.query.url;
@@ -16,7 +15,7 @@ app.get("/check", (req, res) => {
 
   // Nếu có file cookie thì dùng, không thì bỏ qua
   const cookieArg = fs.existsSync(COOKIE_PATH) ? `--cookies ${COOKIE_PATH}` : "";
-  const cmd = `yt-dlp -j ${cookieArg} ${url}`;
+  const cmd = `yt-dlp --dump-json --no-warnings --no-check-certificates ${cookieArg} ${url}`;
 
   exec(cmd, { maxBuffer: 20 * 1024 * 1024 }, (err, stdout, stderr) => {
     if (err) {
@@ -28,6 +27,7 @@ app.get("/check", (req, res) => {
       const json = JSON.parse(stdout);
       res.json(json);
     } catch (e) {
+      console.error("parse error:", e, stdout);
       res.status(500).json({ error: "Invalid JSON output" });
     }
   });
