@@ -11,22 +11,31 @@ app.get("/check", (req, res) => {
     return res.status(400).json({ error: "Missing url parameter" });
   }
 
-  // Gọi yt-dlp -j
-  exec(`yt-dlp -j ${url}`, { maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
+  // Escape input đơn giản để tránh lệnh độc hại
+  const safeUrl = `"${url.replace(/"/g, '\\"')}"`;
+
+  // Gọi yt-dlp -j để lấy metadata
+  exec(`yt-dlp -j ${safeUrl}`, { maxBuffer: 15 * 1024 * 1024 }, (err, stdout, stderr) => {
     if (err) {
-      console.error("yt-dlp error:", stderr);
+      console.error("yt-dlp error:", stderr || err.message);
       return res.status(500).json({ error: "Failed to fetch metadata" });
     }
 
     try {
-      const json = JSON.parse(stdout);
-      res.json(json);
+      const data = JSON.parse(stdout);
+      res.json(data);
     } catch (e) {
+      console.error("JSON parse error:", e.message);
       res.status(500).json({ error: "Invalid JSON output" });
     }
   });
 });
 
-app.listen(PORT, () => {
+// Root endpoint test
+app.get("/", (req, res) => {
+  res.send("yt-dlp metadata API is running 🚀");
+});
+
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
