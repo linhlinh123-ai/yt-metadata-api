@@ -17,6 +17,9 @@ app.get("/check", (req, res) => {
   const cookieArg = fs.existsSync(COOKIE_PATH) ? `--cookies ${COOKIE_PATH}` : "";
   const cmd = `yt-dlp --dump-json --no-warnings --no-check-certificates ${cookieArg} ${url}`;
 
+  // 👉 Log ra command thật
+  console.log("Running command:", cmd);
+
   exec(cmd, { maxBuffer: 20 * 1024 * 1024 }, (err, stdout, stderr) => {
     if (err) {
       console.error("yt-dlp error:", stderr);
