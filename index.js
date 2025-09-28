@@ -5,12 +5,8 @@ import fs from "fs";
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Nếu có cookie trong ENV → ghi ra file tạm
-const COOKIE_PATH = "/tmp/cookies.txt";
-if (process.env.YOUTUBE_COOKIE) {
-  fs.writeFileSync(COOKIE_PATH, process.env.YOUTUBE_COOKIE);
-  console.log("Cookies written to", COOKIE_PATH);
-}
+// Cookie được mount từ Secret
+const COOKIE_PATH = "/tmp/cookies.txt";  // hoặc "/tmp/cookies.txt/youtube-cookie" tùy mount path
 
 app.get("/check", (req, res) => {
   const url = req.query.url;
@@ -18,14 +14,14 @@ app.get("/check", (req, res) => {
     return res.status(400).json({ error: "Missing url parameter" });
   }
 
-  // Gọi yt-dlp với cookie nếu có
-  const cookieArg = process.env.YOUTUBE_COOKIE ? `--cookies ${COOKIE_PATH}` : "";
+  // Nếu có file cookie thì dùng, không thì bỏ qua
+  const cookieArg = fs.existsSync(COOKIE_PATH) ? `--cookies ${COOKIE_PATH}` : "";
   const cmd = `yt-dlp -j ${cookieArg} ${url}`;
 
   exec(cmd, { maxBuffer: 20 * 1024 * 1024 }, (err, stdout, stderr) => {
     if (err) {
       console.error("yt-dlp error:", stderr);
-      return res.status(500).json({ error: "Failed to fetch metadata" });
+      return res.status(500).json({ error: "Failed to fetch metadata", details: stderr });
     }
 
     try {
