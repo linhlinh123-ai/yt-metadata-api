@@ -5,7 +5,7 @@ import fs from "fs";
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-const COOKIE_PATH = "/tmp/cookies.txt"; // file cookie mount từ Secret
+const COOKIE_PATH = "/tmp/cookie/cookies.txt"; // file cookie mount từ Secret
 
 app.get("/check", (req, res) => {
   const url = req.query.url;
